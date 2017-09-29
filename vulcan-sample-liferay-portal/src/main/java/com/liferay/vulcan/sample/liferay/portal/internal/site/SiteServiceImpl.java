@@ -14,15 +14,23 @@
 
 package com.liferay.vulcan.sample.liferay.portal.internal.site;
 
+import static com.liferay.portal.kernel.model.GroupConstants.DEFAULT_MEMBERSHIP_RESTRICTION;
+import static com.liferay.portal.kernel.model.GroupConstants.TYPE_SITE_OPEN;
+
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.vulcan.pagination.PageItems;
 import com.liferay.vulcan.pagination.Pagination;
 import com.liferay.vulcan.sample.liferay.portal.site.Site;
 import com.liferay.vulcan.sample.liferay.portal.site.SiteService;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,6 +42,29 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(immediate = true)
 public class SiteServiceImpl implements SiteService {
+
+	@Override
+	public Site addSite(
+			long userId, long parentGroupId, String className, long classPK,
+			long liveGroupId, Map<Locale, String> nameMap,
+			Map<Locale, String> descriptionMap, int type,
+			boolean manualMembership, int membershipRestriction,
+			String friendlyURL, boolean active, ServiceContext serviceContext)
+		throws PortalException {
+
+		Group group = _groupLocalService.addGroup(
+			userId, parentGroupId, className, classPK, liveGroupId, nameMap,
+			Collections.emptyMap(), TYPE_SITE_OPEN, manualMembership,
+			DEFAULT_MEMBERSHIP_RESTRICTION, friendlyURL, true, active,
+			serviceContext);
+
+		return new SiteImpl(group);
+	}
+
+	@Override
+	public void deleteSite(long siteId) throws PortalException {
+		_groupLocalService.deleteGroup(siteId);
+	}
 
 	@Override
 	public PageItems<Site> getPageItems(Pagination pagination, long companyId) {
@@ -52,6 +83,28 @@ public class SiteServiceImpl implements SiteService {
 		);
 
 		return new PageItems<>(sites, count);
+	}
+
+	@Override
+	public Site getSite(long siteId) throws PortalException {
+		return new SiteImpl(_groupLocalService.getGroup(siteId));
+	}
+
+	@Override
+	public Site updateSite(
+			long siteId, long parentGroupId, Map<Locale, String> nameMap,
+			Map<Locale, String> descriptionMap, int type,
+			boolean manualMembership, int membershipRestriction,
+			String friendlyURL, boolean inheritContent, boolean active,
+			ServiceContext serviceContext)
+		throws PortalException {
+
+		Group group = _groupLocalService.updateGroup(
+			siteId, parentGroupId, nameMap, descriptionMap, type,
+			manualMembership, membershipRestriction, friendlyURL,
+			inheritContent, active, serviceContext);
+
+		return new SiteImpl(group);
 	}
 
 	@Reference
